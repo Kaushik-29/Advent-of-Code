@@ -1,0 +1,70 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int main(void) {
+    char *line = NULL;
+    size_t cap = 0;
+    ssize_t len;
+
+   
+    size_t rows_cap = 128;
+    size_t rows = 0;
+    char **grid = malloc(rows_cap * sizeof(char*));
+    if (!grid) return 2;
+
+   
+    while ((len = getline(&line, &cap, stdin)) != -1) {
+        while (len > 0 && (line[len-1] == '\n' || line[len-1] == '\r')) {
+            line[--len] = '\0';
+        }
+       
+        if (len == 0) continue;
+
+        if (rows + 1 > rows_cap) {
+            rows_cap *= 2;
+            char **tmp = realloc(grid, rows_cap * sizeof(char*));
+            if (!tmp) { perror("realloc"); return 3; }
+            grid = tmp;
+        }
+        grid[rows] = strdup(line);
+        if (!grid[rows]) { perror("strdup"); return 4; }
+        rows++;
+    }
+    free(line);
+
+    if (rows == 0) {
+        printf("0\n");
+        
+        return 0;
+    }
+
+    int cols = strlen(grid[0]);  
+    long long accessible = 0;
+
+    for (size_t r = 0; r < rows; ++r) {
+        int rowlen = (int)strlen(grid[r]);
+        for (int c = 0; c < rowlen; ++c) {
+            if (grid[r][c] != '@') continue;
+            int neighbor_at = 0;
+            for (int dr = -1; dr <= 1; ++dr) {
+                for (int dc = -1; dc <= 1; ++dc) {
+                    if (dr == 0 && dc == 0) continue;
+                    long nr = (long)r + dr;
+                    long nc = (long)c + dc;
+                    if (nr < 0 || nr >= (long)rows) continue;
+                    int nrowlen = (int)strlen(grid[nr]);
+                    if (nc < 0 || nc >= nrowlen) continue;
+                    if (grid[nr][nc] == '@') neighbor_at++;
+                }
+            }
+            if (neighbor_at < 4) accessible++;
+        }
+    }
+
+    printf("%lld\n", accessible);
+
+    for (size_t i = 0; i < rows; ++i) free(grid[i]);
+    free(grid);
+    return 0;
+}
