@@ -1,0 +1,75 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+#define MAX_LEN 200000
+#define K 12   
+
+char* add_big(char* a, const char* b) {
+    int la = strlen(a), lb = strlen(b);
+    int L = (la > lb ? la : lb) + 1;
+    char* r = malloc(L + 1);
+
+    int ia = la - 1, ib = lb - 1, ir = L - 1, carry = 0;
+    r[L] = '\0';
+
+    while (ia >= 0 || ib >= 0 || carry) {
+        int da = (ia >= 0 ? a[ia] - '0' : 0);
+        int db = (ib >= 0 ? b[ib] - '0' : 0);
+        int sum = da + db + carry;
+        r[ir--] = (sum % 10) + '0';
+        carry = sum / 10;
+        ia--; ib--;
+    }
+    while (ir >= 0) r[ir--] = '0';
+
+    char* start = r;
+    while (*start == '0' && *(start+1) != '\0')
+        start++;
+
+    char* final = strdup(start);
+    free(r);
+    free(a);
+    return final;
+}
+
+int main() {
+    char s[MAX_LEN];
+    char* total = strdup("0");  
+
+    while (fgets(s, sizeof(s), stdin)) {
+
+        int n = strlen(s);
+        if (n && s[n-1] == '\n') s[--n] = '\0';
+        if (n == 0) continue;
+
+        char out[K + 1];
+        out[K] = '\0';
+
+        int pos = 0;
+        for (int i = 0; i < K; i++) {
+            int remain = K - i;
+            int end = n - remain;
+
+            char best = '0';
+            int best_idx = pos;
+
+            for (int j = pos; j <= end; j++) {
+                if (s[j] > best) {
+                    best = s[j];
+                    best_idx = j;
+                    if (best == '9') break; 
+                }
+            }
+
+            out[i] = best;
+            pos = best_idx + 1;
+        }
+
+        total = add_big(total, out);
+    }
+
+    printf("%s\n", total);
+    free(total);
+    return 0;
+}
