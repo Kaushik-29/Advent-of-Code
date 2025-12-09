@@ -1,0 +1,104 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct { int r, c; } Node;
+
+int main() {
+    char *line = NULL;
+    size_t cap = 0;
+    ssize_t len;
+
+    int rows_cap = 128, rows = 0;
+    char **grid = malloc(rows_cap * sizeof(char*));
+
+    while ((len = getline(&line, &cap, stdin)) != -1) {
+        while (len > 0 && (line[len-1] == '\n' || line[len-1] == '\r'))
+            line[--len] = '\0';
+
+        if (rows + 1 > rows_cap) {
+            rows_cap *= 2;
+            grid = realloc(grid, rows_cap * sizeof(char*));
+        }
+
+        grid[rows++] = strdup(line);
+    }
+    free(line);
+
+    if (rows == 0) return 0;
+
+    int *col = malloc(rows * sizeof(int));
+    for (int r = 0; r < rows; r++) col[r] = strlen(grid[r]);
+
+    int **deg = malloc(rows * sizeof(int*));
+    for (int r = 0; r < rows; r++) {
+        deg[r] = calloc(col[r], sizeof(int));
+    }
+
+    int dr[8] = {-1,-1,-1, 0,0, 1,1,1};
+    int dc[8] = {-1, 0, 1,-1,1,-1,0,1};
+
+    for (int r = 0; r < rows; r++) {
+        for (int c = 0; c < col[r]; c++) {
+            if (grid[r][c] != '@') continue;
+
+            int d = 0;
+            for (int k = 0; k < 8; k++) {
+                int nr = r + dr[k], nc = c + dc[k];
+                if (nr >= 0 && nr < rows && nc >= 0 && nc < col[nr] &&
+                    grid[nr][nc] == '@')
+                    d++;
+            }
+            deg[r][c] = d;
+        }
+    }
+
+    Node *queue = malloc(rows * 200000 * sizeof(Node)); 
+    long long qh = 0, qt = 0;
+
+    for (int r = 0; r < rows; r++) {
+        for (int c = 0; c < col[r]; c++) {
+            if (grid[r][c] == '@' && deg[r][c] < 4) {
+                queue[qt++] = (Node){r, c};
+            }
+        }
+    }
+
+    long long removed = 0;
+
+    while (qh < qt) {
+        Node u = queue[qh++];
+        int r = u.r, c = u.c;
+
+        if (grid[r][c] != '@') continue; 
+
+        grid[r][c] = '.'; 
+        removed++;
+
+        for (int k = 0; k < 8; k++) {
+            int nr = r + dr[k], nc = c + dc[k];
+            if (nr < 0 || nr >= rows) continue;
+            if (nc < 0 || nc >= col[nr]) continue;
+
+            if (grid[nr][nc] == '@') {
+                deg[nr][nc]--;
+                if (deg[nr][nc] < 4) {
+                    queue[qt++] = (Node){nr, nc};
+                }
+            }
+        }
+    }
+
+    printf("%lld\n", removed);
+
+    for (int r = 0; r < rows; r++) {
+        free(grid[r]);
+        free(deg[r]);
+    }
+    free(grid);
+    free(deg);
+    free(col);
+    free(queue);
+
+    return 0;
+}
