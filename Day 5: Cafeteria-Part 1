@@ -1,0 +1,78 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct {
+    long long start;
+    long long end;
+} Range;
+
+int cmp(const void *a, const void *b) {
+    Range *r1 = (Range *)a;
+    Range *r2 = (Range *)b;
+
+    if (r1->start < r2->start) return -1;
+    if (r1->start > r2->start) return 1;
+    return 0;
+}
+
+int main() {
+    Range ranges[5000];
+    int rangeCount = 0;
+
+    while (1) {
+        long long s, e;
+        char line[100];
+
+        if (!fgets(line, sizeof(line), stdin))
+            break;
+
+        if (line[0] == '\n') 
+            break;
+
+        sscanf(line, "%lld-%lld", &s, &e);
+        ranges[rangeCount].start = s;
+        ranges[rangeCount].end = e;
+        rangeCount++;
+    }
+
+    qsort(ranges, rangeCount, sizeof(Range), cmp);
+
+    Range merged[5000];
+    int mergedCount = 0;
+
+    long long cs = ranges[0].start;
+    long long ce = ranges[0].end;
+
+    for (int i = 1; i < rangeCount; i++) {
+        if (ranges[i].start <= ce) {
+            if (ranges[i].end > ce)
+                ce = ranges[i].end;
+        } else {
+            merged[mergedCount].start = cs;
+            merged[mergedCount].end = ce;
+            mergedCount++;
+
+            cs = ranges[i].start;
+            ce = ranges[i].end;
+        }
+    }
+
+    merged[mergedCount].start = cs;
+    merged[mergedCount].end = ce;
+    mergedCount++;
+
+    long long id;
+    int freshCount = 0;
+
+    while (scanf("%lld", &id) == 1) {
+        for (int i = 0; i < mergedCount; i++) {
+            if (id >= merged[i].start && id <= merged[i].end) {
+                freshCount++;
+                break;
+            }
+        }
+    }
+
+    printf("%d\n", freshCount);
+    return 0;
+}
