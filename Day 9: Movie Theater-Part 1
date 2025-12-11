@@ -1,0 +1,37 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct { long long x, y; } P;
+
+int main() {
+    P *pts = NULL;
+    long long cap = 0, n = 0;
+    long long x, y;
+    char line[128];
+
+    while (fgets(line, sizeof(line), stdin)) {
+        if (sscanf(line, "%lld,%lld", &x, &y) != 2) continue;
+        if (n + 1 > cap) {
+            cap = cap ? cap * 2 : 256;
+            pts = realloc(pts, cap * sizeof(P));
+            if (!pts) return 2;
+        }
+        pts[n].x = x;
+        pts[n].y = y;
+        n++;
+    }
+
+    long long best = 0;
+    for (long long i = 0; i < n; i++) {
+        for (long long j = i + 1; j < n; j++) {
+            long long w = llabs(pts[i].x - pts[j].x) + 1;
+            long long h = llabs(pts[i].y - pts[j].y) + 1;
+            long long area = w * h;
+            if (area > best) best = area;
+        }
+    }
+
+    printf("%lld\n", best);
+    free(pts);
+    return 0;
+}
