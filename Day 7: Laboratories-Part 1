@@ -1,0 +1,87 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_ROWS 10000
+#define MAX_COLS 20000
+
+static char grid[MAX_ROWS][MAX_COLS + 1];
+static int rowCount = 0;
+static int colCount = 0;
+
+int main(void) {
+    char line[16384];
+
+    while (fgets(line, sizeof(line), stdin)) {
+        size_t len = strlen(line);
+        if (len && line[len-1] == '\n') { line[len-1] = '\0'; len--; }
+        if ((int)len > colCount) colCount = (int)len;
+        if (rowCount >= MAX_ROWS) { fprintf(stderr, "Too many rows\n"); return 2; }
+        strncpy(grid[rowCount], line, MAX_COLS);
+        grid[rowCount][(int)len] = '\0';
+        rowCount++;
+    }
+
+    if (rowCount == 0) { printf("0\n"); return 0; }
+
+    for (int r = 0; r < rowCount; ++r) {
+        int len = (int)strlen(grid[r]);
+        for (int c = len; c < colCount; ++c) grid[r][c] = '.';
+        grid[r][colCount] = '\0';
+    }
+
+
+    int srow = -1, scol = -1;
+    for (int r = 0; r < rowCount && srow == -1; ++r) {
+        for (int c = 0; c < colCount; ++c) {
+            if (grid[r][c] == 'S') { srow = r; scol = c; break; }
+        }
+    }
+    if (srow == -1) { fprintf(stderr, "No S found\n"); return 2; }
+
+   
+    char *active = malloc(colCount);
+    char *next_active = malloc(colCount);
+    if (!active || !next_active) { fprintf(stderr, "alloc fail\n"); return 2; }
+    memset(active, 0, colCount);
+    memset(next_active, 0, colCount);
+
+    
+    long long splits = 0;
+    if (srow + 1 < rowCount) active[scol] = 1;
+    else { printf("0\n"); free(active); free(next_active); return 0; }
+
+    for (int r = srow + 1; r < rowCount; ++r) {
+
+        memset(next_active, 0, colCount);
+
+        int any = 0;
+        for (int c = 0; c < colCount; ++c) {
+            if (!active[c]) continue;
+            char ch = grid[r][c];
+            if (ch == '^') {
+               
+                splits++;
+                if (c - 1 >= 0) next_active[c - 1] = 1;
+                if (c + 1 < colCount) next_active[c + 1] = 1;
+                any = 1;
+            } else {
+                
+                next_active[c] = 1;
+                any = 1;
+            }
+        }
+
+        memcpy(active, next_active, colCount);
+
+        int remain = 0;
+        for (int c = 0; c < colCount; ++c) if (active[c]) { remain = 1; break; }
+        if (!remain) break;
+    }
+
+    printf("%lld\n", splits);
+
+    free(active);
+    free(next_active);
+    return 0;
+}
