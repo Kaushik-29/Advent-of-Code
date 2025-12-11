@@ -1,0 +1,116 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAXL 64
+#define MAXB 64
+
+int bits[MAXB][MAXL], target[MAXL];
+int pivotcol[MAXL], freevar[MAXB], sol[MAXB];
+
+int hw(int *v, int n) {
+    int s=0;
+    for(int i=0;i<n;i++) s+=v[i];
+    return s;
+}
+
+int main(){
+    char line[2048];
+    long long total=0;
+
+    while(fgets(line,sizeof(line),stdin)) {
+        if(!strchr(line,'[')) continue;
+
+        int L=0,B=0;
+        memset(bits,0,sizeof(bits));
+        memset(target,0,sizeof(target));
+
+        char *p=strchr(line,'[')+1;
+        while(*p && *p!=']'){
+            if(*p=='#') target[L]=1;
+            L++;
+            p++;
+        }
+
+        p=strchr(line,']');
+        while((p=strchr(p,'('))){
+            p++;
+            while(*p && *p!=')'){
+                if(*p>='0'&&*p<='9'){
+                    int v=0;
+                    while(*p>='0'&&*p<='9'){ v=v*10+(*p-'0'); p++; }
+                    bits[B][v]^=1;
+                } else p++;
+            }
+            B++;
+            p++;
+        }
+
+        int rank=0;
+        memset(pivotcol,-1,sizeof(pivotcol));
+
+        for(int c=0;c<B;c++){
+            for(int r=rank;r<L;r++){
+                if(bits[c][r]){
+                    if(r!=rank){
+                        for(int cc=0;cc<B;cc++){
+                            int t=bits[cc][r];
+                            bits[cc][r]=bits[cc][rank];
+                            bits[cc][rank]=t;
+                        }
+                        int tt=target[r];
+                        target[r]=target[rank];
+                        target[rank]=tt;
+                    }
+                    break;
+                }
+            }
+            if(!bits[c][rank]) continue;
+            pivotcol[rank]=c;
+
+            for(int rr=rank+1;rr<L;rr++){
+                if(bits[c][rr]){
+                    for(int cc=0;cc<B;cc++)
+                        bits[cc][rr]^=bits[cc][rank];
+                    target[rr]^=target[rank];
+                }
+            }
+            rank++;
+            if(rank==L) break;
+        }
+
+        int nf=0;
+        for(int c=0;c<B;c++){
+            int isfree=1;
+            for(int r=0;r<L;r++)
+                if(pivotcol[r]==c) isfree=0;
+            if(isfree) freevar[nf++]=c;
+        }
+
+        int best=-1;
+
+        int tot=1<<nf;
+        for(int mask=0;mask<tot;mask++){
+            memset(sol,0,sizeof(int)*B);
+
+            for(int i=0;i<nf;i++)
+                if(mask&(1<<i)) sol[freevar[i]]=1;
+
+            for(int r=rank-1;r>=0;r--){
+                int c=pivotcol[r];
+                int s=target[r];
+                for(int cc=c+1;cc<B;cc++)
+                    if(bits[cc][r]) s^=sol[cc];
+                sol[c]=s;
+            }
+
+            int w=hw(sol,B);
+            if(best<0||w<best) best=w;
+        }
+
+        total+=best;
+    }
+
+    printf("%lld\n",total);
+    return 0;
+}
