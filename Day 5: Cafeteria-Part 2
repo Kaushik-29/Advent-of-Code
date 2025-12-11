@@ -1,0 +1,73 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct {
+    long long start;
+    long long end;
+} Range;
+
+int cmp(const void *a, const void *b) {
+    const Range *r1 = (const Range *)a;
+    const Range *r2 = (const Range *)b;
+    if (r1->start < r2->start) return -1;
+    if (r1->start > r2->start) return 1;
+    return 0;
+}
+
+int main() {
+    Range ranges[1000000]; 
+    long long n = 0;
+
+    printf("Reading ranges...\n");
+
+    while (1) {
+        long long s, e;
+        int result = scanf("%lld-%lld", &s, &e);
+
+        if (result == 2) {
+            ranges[n].start = s;
+            ranges[n].end = e;
+            n++;
+        } else {
+
+            long long single;
+            if (scanf("%lld", &single) == 1) {
+                continue;
+            }
+            break;
+        }
+    }
+
+    if (n == 0) {
+        printf("No valid ranges found.\n");
+        return 0;
+    }
+
+    qsort(ranges, n, sizeof(Range), cmp);
+
+    long long total = 0;
+
+    long long curStart = ranges[0].start;
+    long long curEnd   = ranges[0].end;
+
+    for (long long i = 1; i < n; i++) {
+
+        if (ranges[i].start <= curEnd + 1) {
+
+            if (ranges[i].end > curEnd)
+                curEnd = ranges[i].end;
+        } else {
+
+            total += (curEnd - curStart + 1);
+
+            curStart = ranges[i].start;
+            curEnd   = ranges[i].end;
+        }
+    }
+
+    total += (curEnd - curStart + 1);
+
+    printf("Total fresh ingredient IDs: %lld\n", total);
+
+    return 0;
+}
