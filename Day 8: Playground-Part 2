@@ -1,0 +1,96 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+
+typedef unsigned long long ull;
+typedef __uint128_t u128;
+
+typedef struct { long long x,y,z; } Point;
+typedef struct { int a,b; ull d; } Edge;
+
+int findp(int *par, int x){
+    while(par[x]!=x){ par[x]=par[par[x]]; x=par[x]; }
+    return x;
+}
+int unite(int *par,int *sz,int a,int b){
+    int ra=findp(par,a), rb=findp(par,b);
+    if(ra==rb) return 0;
+    if(sz[ra]<sz[rb]){ int t=ra; ra=rb; rb=t;}
+    par[rb]=ra; sz[ra]+=sz[rb];
+    return 1;
+}
+int cmp_edge(const void *A,const void *B){
+    const Edge *a=A,*b=B;
+    if(a->d<b->d) return -1;
+    if(a->d>b->d) return 1;
+    if(a->a<b->a) return -1;
+    if(a->a>b->a) return 1;
+    return a->b - b->b;
+}
+void u128_to_str(u128 v, char *out){
+    if(v==0){ out[0]='0'; out[1]=0; return; }
+    char buf[80]; int i=0;
+    while(v>0){ buf[i++] = '0' + (unsigned)(v%10); v/=10; }
+    int j=0; while(i>0) out[j++]=buf[--i];
+    out[j]=0;
+}
+
+int main(void){
+    Point *pts = NULL;
+    size_t cap=0, n=0;
+    char line[256];
+    while(fgets(line,sizeof(line),stdin)){
+        long long x,y,z;
+        if (sscanf(line,"%lld,%lld,%lld",&x,&y,&z)!=3) continue;
+        if(n+1>cap){ cap = cap? cap*2 : 256; pts = realloc(pts, cap*sizeof(Point)); if(!pts) return 2; }
+        pts[n].x=x; pts[n].y=y; pts[n].z=z; n++;
+    }
+    if(n==0){ printf("0\n"); free(pts); return 0; }
+    if(n==1){ printf("0\n"); free(pts); return 0; }
+
+    unsigned long long m = (unsigned long long)n*(n-1)/2ULL;
+    Edge *edges = malloc(m * sizeof(Edge));
+    if(!edges){ fprintf(stderr,"alloc fail\n"); return 2; }
+    unsigned long long idx=0;
+    for(size_t i=0;i<n;++i) for(size_t j=i+1;j<n;++j){
+        long long dx = pts[i].x - pts[j].x;
+        long long dy = pts[i].y - pts[j].y;
+        long long dz = pts[i].z - pts[j].z;
+        ull d = (ull)dx*(ull)dx + (ull)dy*(ull)dy + (ull)dz*(ull)dz;
+        edges[idx].a = (int)i;
+        edges[idx].b = (int)j;
+        edges[idx].d = d;
+        idx++;
+    }
+    qsort(edges, m, sizeof(Edge), cmp_edge);
+
+    int *par = malloc(n * sizeof(int));
+    int *sz  = malloc(n * sizeof(int));
+    for(size_t i=0;i<n;++i){ par[i]=(int)i; sz[i]=1; }
+
+    int merges = 0;
+    u128 product = 0;
+    for(unsigned long long i=0;i<m && merges < (int)n-1; ++i){
+        int a = edges[i].a, b = edges[i].b;
+        if(unite(par, sz, a, b)){
+            merges++;
+            if(merges == (int)n-1){
+                u128 xa = (u128) pts[a].x;
+                u128 xb = (u128) pts[b].x;
+                product = xa * xb;
+                break;
+            }
+        }
+    }
+
+    char out[80];
+    u128_to_str(product, out);
+    printf("%s\n", out);
+
+    free(pts);
+    free(edges);
+    free(par);
+    free(sz);
+    return 0;
+}
