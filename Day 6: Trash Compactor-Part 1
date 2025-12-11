@@ -1,0 +1,105 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MAX_ROWS 5000
+#define MAX_COLS 10000
+
+char grid[MAX_ROWS][MAX_COLS];
+int rowCount = 0;
+int colCount = 0;
+
+int main() {
+    
+    char line[20000];
+    while (fgets(line, sizeof(line), stdin)) {
+        int len = strlen(line);
+        if (len > 0 && (line[len-1] == '\n')) line[len-1] = '\0';
+        len = strlen(line);
+
+        if (len > colCount) colCount = len;
+
+        strcpy(grid[rowCount], line);
+        rowCount++;
+    }
+
+    for (int r = 0; r < rowCount; r++) {
+        int len = strlen(grid[r]);
+        for (int c = len; c < colCount; c++)
+            grid[r][c] = ' ';
+        grid[r][colCount] = '\0';
+    }
+
+    long long grandTotal = 0;
+
+    int c = 0;
+    while (c < colCount) {
+
+        int nonEmpty = 0;
+        for (int r = 0; r < rowCount; r++)
+            if (grid[r][c] != ' ')
+                nonEmpty = 1;
+
+        if (!nonEmpty) {
+            c++;
+            continue;
+        }
+
+        int start = c;
+        int end = c;
+
+        while (end < colCount) {
+            int empty = 1;
+            for (int r = 0; r < rowCount; r++)
+                if (grid[r][end] != ' ')
+                    empty = 0;
+
+            if (empty) break;
+            end++;
+        }
+
+        long long numbers[5000];
+        int numCount = 0;
+
+        for (int r = 0; r < rowCount - 1; r++) {
+            char buf[20000];
+            int idx = 0;
+
+            for (int col = start; col < end; col++) {
+                if (isdigit(grid[r][col]))
+                    buf[idx++] = grid[r][col];
+            }
+            buf[idx] = '\0';
+
+            if (idx > 0) {
+                numbers[numCount++] = atoll(buf);
+            }
+        }
+
+        char op = 0;
+        for (int col = start; col < end; col++) {
+            if (grid[rowCount-1][col] == '+' || grid[rowCount-1][col] == '*') {
+                op = grid[rowCount-1][col];
+                break;
+            }
+        }
+
+        long long result = (op == '+') ? 0 : 1;
+
+        if (op == '+') {
+            for (int i = 0; i < numCount; i++)
+                result += numbers[i];
+        } else {
+            for (int i = 0; i < numCount; i++)
+                result *= numbers[i];
+        }
+
+        grandTotal += result;
+
+        c = end;
+    }
+
+    printf("%lld\n", grandTotal);
+    return 0;
+}
