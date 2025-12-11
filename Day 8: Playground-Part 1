@@ -1,0 +1,153 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+
+typedef unsigned long long ull;
+typedef __uint128_t u128;
+
+typedef struct { long long x, y, z; } Point;
+
+typedef struct { 
+    int a, b; 
+    ull d; 
+} Edge;
+
+int findp(int *par, int x) {
+    while (par[x] != x) {
+        par[x] = par[par[x]];
+        x = par[x];
+    }
+    return x;
+}
+
+int unite(int *par, int *sz, int a, int b) {
+    int ra = findp(par, a);
+    int rb = findp(par, b);
+    if (ra == rb) return 0;
+    if (sz[ra] < sz[rb]) {
+        int t = ra; ra = rb; rb = t;
+    }
+    par[rb] = ra;
+    sz[ra] += sz[rb];
+    return 1;
+}
+
+int cmp_edge(const void *A, const void *B) {
+    const Edge *a = A, *b = B;
+    if (a->d < b->d) return -1;
+    if (a->d > b->d) return 1;
+    if (a->a < b->a) return -1;
+    if (a->a > b->a) return 1;
+    return a->b - b->b;
+}
+
+int cmp_int_desc(const void *A, const void *B) {
+    int a = *(const int*)A;
+    int b = *(const int*)B;
+    return b - a;
+}
+
+void u128_to_str(u128 v, char *out) {
+    if (v == 0) { out[0] = '0'; out[1] = '\0'; return; }
+    char buf[80];
+    int i = 0;
+    while (v > 0) {
+        buf[i++] = '0' + (unsigned)(v % 10);
+        v /= 10;
+    }
+    int j = 0;
+    while (i > 0) out[j++] = buf[--i];
+    out[j] = '\0';
+}
+
+int main(void) {
+    Point *pts = NULL;
+    size_t cap = 0, n = 0;
+    char line[256];
+
+    while (fgets(line, sizeof(line), stdin)) {
+        long long x, y, z;
+        if (sscanf(line, "%lld,%lld,%lld", &x, &y, &z) != 3) continue;
+        if (n + 1 > cap) {
+            cap = cap ? cap * 2 : 256;
+            pts = realloc(pts, cap * sizeof(Point));
+            if (!pts) return 2;
+        }
+        pts[n].x = x;
+        pts[n].y = y;
+        pts[n].z = z;
+        n++;
+    }
+
+    if (n == 0) {
+        printf("0\n");
+        return 0;
+    }
+
+    unsigned long long m = (unsigned long long)n * (n - 1) / 2ULL;
+    Edge *edges = malloc(m * sizeof(Edge));
+    if (!edges) {
+        fprintf(stderr, "Memory error: too many points.\n");
+        return 2;
+    }
+
+    unsigned long long idx = 0;
+    for (size_t i = 0; i < n; ++i) {
+        for (size_t j = i + 1; j < n; ++j) {
+            long long dx = pts[i].x - pts[j].x;
+            long long dy = pts[i].y - pts[j].y;
+            long long dz = pts[i].z - pts[j].z;
+            ull d = (ull)dx * dx + (ull)dy * dy + (ull)dz * dz;
+            edges[idx].a = i;
+            edges[idx].b = j;
+            edges[idx].d = d;
+            idx++;
+        }
+    }
+
+    qsort(edges, m, sizeof(Edge), cmp_edge);
+
+    int *par = malloc(n * sizeof(int));
+    int *sz  = malloc(n * sizeof(int));
+    for (size_t i = 0; i < n; i++) {
+        par[i] = i;
+        sz[i] = 1;
+    }
+
+    unsigned long long K = 1000;
+    if (K > m) K = m;
+    for (unsigned long long i = 0; i < K; i++)
+        unite(par, sz, edges[i].a, edges[i].b);
+
+    int *seen = calloc(n, sizeof(int));
+    int *sizes = malloc(n * sizeof(int));
+    int comps = 0;
+
+    for (size_t i = 0; i < n; i++) {
+        int r = findp(par, i);
+        if (!seen[r]) {
+            seen[r] = 1;
+            sizes[comps++] = sz[r];
+        }
+    }
+
+    qsort(sizes, comps, sizeof(int), cmp_int_desc);
+
+    u128 prod = 1;
+    for (int i = 0; i < 3; i++)
+        prod *= (i < comps ? sizes[i] : 1);
+
+    char out[80];
+    u128_to_str(prod, out);
+    printf("%s\n", out);
+
+    free(pts);
+    free(edges);
+    free(par);
+    free(sz);
+    free(seen);
+    free(sizes);
+
+    return 0;
+}
