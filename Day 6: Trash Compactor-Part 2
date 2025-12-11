@@ -1,0 +1,132 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MAX_ROWS 10000
+#define MAX_COLS 20000
+
+static char grid[MAX_ROWS][MAX_COLS + 1];
+static int rowCount = 0;
+static int colCount = 0;
+
+static void u128_to_str(unsigned __int128 v, char *out) {
+    if (v == 0) {
+        strcpy(out, "0");
+        return;
+    }
+    char buf[80];
+    int i = 0;
+    while (v > 0) {
+        int digit = (int)(v % 10);
+        buf[i++] = '0' + digit;
+        v /= 10;
+    }
+
+    int j = 0;
+    while (i > 0) out[j++] = buf[--i];
+    out[j] = '\0';
+}
+
+int main(void) {
+    char line[20050];
+
+    while (fgets(line, (int)sizeof(line), stdin)) {
+        size_t len = strlen(line);
+        if (len > 0 && line[len - 1] == '\n') {
+            line[len - 1] = '\0';
+            len--;
+        }
+        if ((int)len > colCount) colCount = (int)len;
+        if (rowCount >= MAX_ROWS) {
+            fprintf(stderr, "Too many rows\n");
+            return 2;
+        }
+        /* copy line */
+        strcpy(grid[rowCount], line);
+        rowCount++;
+    }
+
+    if (rowCount == 0) {
+        printf("0\n");
+        return 0;
+    }
+
+    for (int r = 0; r < rowCount; ++r) {
+        int len = (int)strlen(grid[r]);
+        for (int c = len; c < colCount; ++c) grid[r][c] = ' ';
+        grid[r][colCount] = '\0';
+    }
+
+    unsigned __int128 grandTotal = 0;
+
+    int c = 0;
+    while (c < colCount) {
+
+        int nonEmpty = 0;
+        for (int r = 0; r < rowCount; ++r) {
+            if (grid[r][c] != ' ') { nonEmpty = 1; break; }
+        }
+        if (!nonEmpty) { c++; continue; }
+
+        int start = c;
+        int end = c;
+        while (end < colCount) {
+            int any = 0;
+            for (int r = 0; r < rowCount; ++r) {
+                if (grid[r][end] != ' ') { any = 1; break; }
+            }
+            if (!any) break;
+            end++;
+        }
+
+        unsigned __int128 result = 0;
+        int op_found = 0;
+        char op = 0;
+
+        for (int col = start; col < end; ++col) {
+            char ch = grid[rowCount - 1][col];
+            if (ch == '+' || ch == '*') { op = ch; op_found = 1; break; }
+        }
+        if (!op_found) {
+
+            c = end;
+            continue;
+        }
+
+        if (op == '+') result = 0;
+        else result = 1;
+
+        for (int col = end - 1; col >= start; --col) {
+            /* build the number by reading rows 0..rowCount-2 top->bottom */
+            unsigned __int128 num = 0;
+            int digitFound = 0;
+            for (int r = 0; r < rowCount - 1; ++r) {
+                char ch = grid[r][col];
+                if (isdigit((unsigned char)ch)) {
+                    digitFound = 1;
+                    num = num * 10 + (unsigned __int128)(ch - '0');
+                }
+            }
+            if (!digitFound) {
+                
+                continue;
+            }
+
+            if (op == '+') {
+                result += num;
+            } else {
+                result *= num;
+            }
+        }
+
+        grandTotal += result;
+
+        c = end;
+    }
+
+    char out[80];
+    u128_to_str(grandTotal, out);
+    printf("%s\n", out);
+    return 0;
+}
