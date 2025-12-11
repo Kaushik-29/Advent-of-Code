@@ -1,0 +1,107 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MAX_ROWS 20000
+#define MAX_COLS 20000
+
+static char *grid[MAX_ROWS];
+static int rowCount = 0;
+static int colCount = 0;
+
+static void u128_to_str(unsigned __int128 v, char *out) {
+    if (v == 0) { out[0] = '0'; out[1] = '\0'; return; }
+    char buf[80];
+    int i = 0;
+    while (v > 0) {
+        int d = (int)(v % 10);
+        buf[i++] = '0' + d;
+        v /= 10;
+    }
+    int j = 0;
+    while (i > 0) out[j++] = buf[--i];
+    out[j] = '\0';
+}
+
+int main(void) {
+    char line[32768];
+
+    while (fgets(line, sizeof(line), stdin)) {
+        size_t len = strlen(line);
+        if (len && line[len-1] == '\n') { line[len-1] = '\0'; len--; }
+        if (len > (size_t)colCount) colCount = (int)len;
+        if (rowCount >= MAX_ROWS) return 2;
+        grid[rowCount] = malloc(colCount + 1 + 16);
+        if (!grid[rowCount]) return 2;
+        strcpy(grid[rowCount], line);
+        rowCount++;
+    }
+
+    if (rowCount == 0) { printf("0\n"); return 0; }
+
+    for (int r = 0; r < rowCount; ++r) {
+        int len = (int)strlen(grid[r]);
+        if (len < colCount) {
+            for (int c = len; c < colCount; ++c) grid[r][c] = '.';
+            grid[r][colCount] = '\0';
+        }
+    }
+
+    int srow = -1, scol = -1;
+    for (int r = 0; r < rowCount && srow == -1; ++r) {
+        for (int c = 0; c < colCount; ++c) {
+            if (grid[r][c] == 'S') { srow = r; scol = c; break; }
+        }
+    }
+    if (srow == -1) return 2;
+
+    unsigned __int128 *cur = calloc(colCount, sizeof(unsigned __int128));
+    unsigned __int128 *next = calloc(colCount, sizeof(unsigned __int128));
+    if (!cur || !next) return 2;
+
+    unsigned __int128 finished = 0;
+
+    if (srow + 1 >= rowCount) {
+        finished = 1;
+    } else {
+        cur[scol] = 1;
+        for (int r = srow + 1; r < rowCount; ++r) {
+            for (int c = 0; c < colCount; ++c) next[c] = 0;
+            for (int c = 0; c < colCount; ++c) {
+                if (cur[c] == 0) continue;
+                unsigned __int128 ways = cur[c];
+                char ch = grid[r][c];
+
+                if (ch == '^') {
+                    if (c - 1 < 0) finished += ways;
+                    else if (r + 1 >= rowCount) finished += ways;
+                    else next[c - 1] += ways;
+
+                    if (c + 1 >= colCount) finished += ways;
+                    else if (r + 1 >= rowCount) finished += ways;
+                    else next[c + 1] += ways;
+
+                } else {
+                    if (r + 1 >= rowCount) finished += ways;
+                    else next[c] += ways;
+                }
+            }
+
+            unsigned __int128 *tmp = cur; cur = next; next = tmp;
+
+            int remain = 0;
+            for (int c = 0; c < colCount; ++c) if (cur[c]) { remain = 1; break; }
+            if (!remain) break;
+        }
+    }
+
+    char out[80];
+    u128_to_str(finished, out);
+    printf("%s\n", out);
+
+    for (int r = 0; r < rowCount; ++r) free(grid[r]);
+    free(cur);
+    free(next);
+    return 0;
+}
