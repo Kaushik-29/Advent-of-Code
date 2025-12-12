@@ -1,0 +1,86 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAXNODES 3000
+#define MAXNAME 32
+
+char names[MAXNODES][MAXNAME];
+int adj[MAXNODES][MAXNODES], adjCount[MAXNODES];
+long long memo[MAXNODES][MAXNODES];
+char seen[MAXNODES][MAXNODES];
+int nodeCount = 0;
+
+int getNodeId(const char *name) {
+    for (int i = 0; i < nodeCount; i++)
+        if (!strcmp(names[i], name)) return i;
+    strcpy(names[nodeCount], name);
+    return nodeCount++;
+}
+
+long long dfs_count(int src, int target, char *visited) {
+    if (src == target) return 1;
+    if (memo[src][target] != -1) return memo[src][target];
+
+    long long total = 0;
+
+    for (int i = 0; i < adjCount[src]; i++) {
+        int nxt = adj[src][i];
+        if (!visited[nxt]) {
+            visited[nxt] = 1;
+            total += dfs_count(nxt, target, visited);
+            visited[nxt] = 0;
+        }
+    }
+
+    memo[src][target] = total;
+    return total;
+}
+
+long long count_paths(int a, int b) {
+    char visited[MAXNODES] = {0};
+    visited[a] = 1;
+    return dfs_count(a, b, visited);
+}
+
+int main() {
+    char line[512];
+
+    memset(memo, -1, sizeof(memo));
+
+    while (fgets(line, sizeof(line), stdin)) {
+        char *colon = strchr(line, ':');
+        if (!colon) continue;
+        *colon = 0;
+
+        char name[MAXNAME];
+        sscanf(line, "%s", name);
+        int a = getNodeId(name);
+
+        char *tok = strtok(colon + 1, " \t\r\n");
+        while (tok) {
+            int b = getNodeId(tok);
+            adj[a][adjCount[a]++] = b;
+            tok = strtok(NULL, " \t\r\n");
+        }
+    }
+
+    int svr = getNodeId("svr");
+    int dac = getNodeId("dac");
+    int fft = getNodeId("fft");
+    int out = getNodeId("out");
+
+    long long A = count_paths(svr, dac);
+    long long B = count_paths(dac, fft);
+    long long C = count_paths(fft, out);
+
+    long long D = count_paths(svr, fft);
+    long long E = count_paths(fft, dac);
+    long long F = count_paths(dac, out);
+
+    long long answer = A * B * C + D * E * F;
+
+    printf("Paths that include both dac and fft: %lld\n", answer);
+
+    return 0;
+}
