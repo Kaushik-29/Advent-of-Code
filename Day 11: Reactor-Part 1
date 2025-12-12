@@ -1,0 +1,98 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAXNODES 2000
+#define MAXNAME 32
+#define MAXEDGES 4000
+
+char names[MAXNODES][MAXNAME];
+int adj[MAXNODES][MAXNODES];
+int adjCount[MAXNODES];
+int nodeCount = 0;
+
+int getNodeId(const char *name) {
+    for (int i = 0; i < nodeCount; i++) {
+        if (strcmp(names[i], name) == 0)
+            return i;
+    }
+    strcpy(names[nodeCount], name);
+    return nodeCount++;
+}
+
+typedef struct {
+    int node;
+    int nextChild;
+} Frame;
+
+int path[MAXNODES];
+int pathUsed[MAXNODES];
+long long totalPaths = 0;
+
+int main() {
+    char line[256];
+
+    while (fgets(line, sizeof(line), stdin)) {
+        if (strlen(line) < 3) continue;
+
+        char left[MAXNAME];
+        char *colon = strchr(line, ':');
+        if (!colon) continue;
+
+        *colon = '\0';
+        strcpy(left, line);
+
+        int a = getNodeId(left);
+
+        char *p = colon + 1;
+        while (*p == ' ') p++;
+
+        char *tok = strtok(p, " \n\t");
+        while (tok) {
+            int b = getNodeId(tok);
+            adj[a][adjCount[a]++] = b;
+            tok = strtok(NULL, " \n\t");
+        }
+    }
+
+    int start = getNodeId("you");
+    int target = getNodeId("out");
+
+    Frame stack[MAXNODES];
+    int sp = 0;
+
+    stack[sp++] = (Frame){ start, 0 };
+    pathUsed[start] = 1;
+    path[0] = start;
+    int depth = 1;
+
+    while (sp > 0) {
+        Frame *f = &stack[sp - 1];
+        int node = f->node;
+
+        if (node == target) {
+            totalPaths++;
+            sp--;
+            depth--;
+            pathUsed[node] = 0;
+            continue;
+        }
+
+        if (f->nextChild >= adjCount[node]) {
+            sp--;
+            depth--;
+            pathUsed[node] = 0;
+            continue;
+        }
+
+        int next = adj[node][f->nextChild++];
+        if (!pathUsed[next]) {
+            pathUsed[next] = 1;
+            path[depth++] = next;
+            stack[sp++] = (Frame){ next, 0 };
+        }
+    }
+
+    printf("Total paths from 'you' to 'out': %lld\n", totalPaths);
+    return 0;
+}
